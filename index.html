@@ -29,16 +29,19 @@
             </div> <!-- app-grid 结束 -->
 
             <!-- 变量替换 Demo（只在首页显示） -->
-            <div id="vars-demo" style="margin-top:14px;padding:10px;border:1px dashed #bbb;border-radius:8px;font-size:14px;">
-              <div><strong>模板（原文）</strong>：
-                现在是 {{time.hour}}:{{time.minute}}，{{ai.name}} 心情 {{ai.mood}}。
-                你有 {{player.inventory.length:0}} 件物品，聊天条数：{{chat.count}}，
-                离线收益/分：{{worldBook.rule001.value:1}}，随机数：{{random.10}}
+            <details id="vars-demo" style="margin-top:14px;">
+              <summary>变量调试面板</summary>
+              <div style="padding:10px;border:1px dashed #bbb;border-radius:8px;font-size:14px;">
+                <div><strong>模板（原文）</strong>：
+                  现在是 {{time.hour}}:{{time.minute}}，{{ai.name}} 心情 {{ai.mood}}。
+                  你有 {{player.inventory.length:0}} 件物品，聊天条数：{{chat.count}}，
+                  离线收益/分：{{worldBook.rule001.value:1}}，随机数：{{random.10}}
+                </div>
+                <div style="margin-top:8px;"><strong>渲染结果</strong>：
+                  <span id="vars-demo-result">（加载中…）</span>
+                </div>
               </div>
-              <div style="margin-top:8px;"><strong>渲染结果</strong>：
-                <span id="vars-demo-result">（加载中…）</span>
-              </div>
-            </div>
+            </details>
         </main>
         
         <section id="chat-screen" class="screen">

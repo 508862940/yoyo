@@ -2,7 +2,7 @@
 body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; color: #333; }
 .mobile-container { width: 375px; height: 667px; background-color: #ffffff; border-radius: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); position: relative; overflow: hidden; }
 .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 20px; box-sizing: border-box; background-color: #f9f9f9; display: none; }
-#lock-screen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex !important; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; z-index: 10; }
+#lock-screen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; z-index: 10; }
 .time-display { font-size: 64px; font-weight: 200; }
 .unlock-prompt { margin-top: 20px; font-size: 18px; opacity: 0.8; }
 #home-screen { z-index: 5; }

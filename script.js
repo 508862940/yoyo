@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    
+    // 捕获未处理的 Promise 错误，避免控制台出现红色报错
+    window.addEventListener('unhandledrejection', event => {
+        console.warn('未处理的 Promise 错误：', event.reason);
+        event.preventDefault();
+    });
+
     // --- 0. 数据库 (Data) ---
     const db = new Dexie('myVirtualWorldDB');
     db.version(1).stores({
@@ -19,6 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. 记忆核心 (The Soul) ---
     let worldState = {};
 
+    // 升级旧格式的世界书到新格式
+    function upgradeWorldBook(oldBook = []) {
+        return oldBook.map(rule => {
+            if (rule.triggers) return rule; // 已经是新格式
+            return {
+                id: rule.id,
+                name: rule.key || '未命名规则',
+                category: rule.category || '通用',
+                triggers: [rule.key || ''], // 触发关键词
+                content: String(rule.value || rule.description || ''),
+                enabled: true,
+                constant: false, // 是否总是激活
+                position: 'after', // before/after - 在历史记录前还是后
+                priority: 100, // 优先级（数字越大越优先）
+                variables: true, // 是否启用变量替换
+                comment: rule.description || ''
+            };
+        });
+    }
+
     // --- 2. 存档 & 读档机制 ---
     async function saveWorldState() {
         try {
@@ -32,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await db.general.put({ id: 'main', lastOnlineTimestamp: Date.now() });
                 await db.player.put({ id: 'main', ...worldState.player });
                 await db.ai.put({ id: 'main', ...worldState.ai });
+                await db.worldBook.clear();
                 await db.worldBook.bulkPut(worldState.worldBook);
                 await db.events.put({ id: 'main', ...worldState.events });
                 await db.apiConfig.put({ id: 'main', ...worldState.apiConfig });
@@ -62,28 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
         worldState.player = player || { name: "你", money: 1000, inventory: [] };
         worldState.ai = ai || { name: "零", mood: "开心", money: 1500, inventory: [] };
         worldState.chat = { history: chatHistory || [] };
-        // 升级旧格式的世界书到新格式
-const upgradeWorldBook = (oldBook) => {
-    return oldBook.map(rule => {
-        if (rule.triggers) return rule; // 已经是新格式
-        return {
-            id: rule.id,
-            name: rule.key || '未命名规则',
-            category: rule.category || '通用',
-            triggers: [rule.key || ''], // 触发关键词
-            content: String(rule.value || rule.description || ''),
-            enabled: true,
-            constant: false, // 是否总是激活
-            position: 'after', // before/after - 在历史记录前还是后
-            priority: 100, // 优先级（数字越大越优先）
-            variables: true, // 是否启用变量替换
-            comment: rule.description || ''
-        };
-    });
-};
 
-worldState.worldBook = (worldBook && worldBook.length > 0) 
-    ? upgradeWorldBook(worldBook) 
+worldState.worldBook = (worldBook && worldBook.length > 0)
+    ? upgradeWorldBook(worldBook)
     : [{
         id: 'rule001',
         name: 'AI离线收入规则',
@@ -137,7 +144,10 @@ worldState.worldBook = (worldBook && worldBook.length > 0)
         if (timePassedMinutes > 0 && incomePerMinute > 0) {
             const moneyEarned = timePassedMinutes * incomePerMinute;
             worldState.ai.money += moneyEarned;
-            worldState.session = { minutesAway: timePassedMinutes, moneyEarned: moneyEarned };
+            worldState.session = { minutesAway: timePassedMinutes, moneyEarned };
+            worldState.lastOnlineTimestamp = Date.now();
+            await saveWorldState();
+            renderWalletScreen();
         }
     }
 
@@ -665,7 +675,7 @@ ${activeChat.settings.enableChainOfThought ? '5. **[思维链已开启]** 在最
     const addBtn = document.createElement('button');
     addBtn.className = 'form-button';
     addBtn.textContent = '➕ 新建条目';
-    addBtn.onclick = async () => {
+    addBtn.onclick = () => {
         const newRule = {
             id: `rule_${Date.now()}`,
             name: '新条目',
@@ -677,10 +687,10 @@ ${activeChat.settings.enableChainOfThought ? '5. **[思维链已开启]** 在最
             position: 'after',
             priority: 100,
             variables: true,
-            comment: ''
+            comment: '',
+            isNew: true
         };
         worldState.worldBook.push(newRule);
-        await saveWorldState();
         renderWorldBookScreen(newRule.id);
     };
     
@@ -712,10 +722,11 @@ ${activeChat.settings.enableChainOfThought ? '5. **[思维链已开启]** 在最
                 const text = await file.text();
                 const rules = JSON.parse(text);
                 if (Array.isArray(rules)) {
+                    const upgraded = upgradeWorldBook(rules);
                     if (confirm('要替换现有规则还是追加？\n确定=替换，取消=追加')) {
-                        worldState.worldBook = rules;
+                        worldState.worldBook = upgraded;
                     } else {
-                        worldState.worldBook.push(...rules);
+                        worldState.worldBook.push(...upgraded);
                     }
                     await saveWorldState();
                     renderWorldBookScreen();
@@ -796,9 +807,9 @@ ${activeChat.settings.enableChainOfThought ? '5. **[思维链已开启]** 在最
             const actions = document.createElement('div');
             actions.className = 'wb-edit-actions';
             actions.innerHTML = `
-                <button class="wb-save-btn" onclick="saveWorldBookEntry('${rule.id}')">保存</button>
-                <button class="wb-cancel-btn" onclick="renderWorldBookScreen()">取消</button>
-                <button class="wb-delete-btn" onclick="deleteWorldBookEntry('${rule.id}')">删除</button>
+                <button type="button" class="wb-save-btn" onclick="saveWorldBookEntry('${rule.id}')">保存</button>
+                <button type="button" class="wb-cancel-btn" data-rule-id="${rule.id}" onclick="renderWorldBookScreen()">取消</button>
+                <button type="button" class="wb-delete-btn" onclick="deleteWorldBookEntry('${rule.id}')">删除</button>
             `;
             
             form.appendChild(row1);
@@ -908,6 +919,7 @@ text.textContent = preview.substring(0, 100) + (preview.length > 100 ? '...' : '
         rule.priority = parseInt(document.getElementById(`wb-priority-${ruleId}`).value) || 100;
         rule.comment = document.getElementById(`wb-comment-${ruleId}`).value;
         
+        delete rule.isNew;
         await saveWorldState();
         renderWorldBookScreen();
     };
@@ -1208,6 +1220,12 @@ window.renderWorldBookScreen = renderWorldBookScreen;
     
     // 处理取消按钮
     if (target.classList.contains('wb-cancel-btn')) {
+        const ruleId = target.dataset.ruleId;
+        const rule = worldState.worldBook.find(r => r.id === ruleId);
+        if (rule && rule.isNew) {
+            worldState.worldBook = worldState.worldBook.filter(r => r.id !== ruleId);
+            await saveWorldState();
+        }
         renderWorldBookScreen();
     }
     
