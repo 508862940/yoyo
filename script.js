@@ -144,7 +144,7 @@ worldState.worldBook = (worldBook && worldBook.length > 0)
         if (timePassedMinutes > 0 && incomePerMinute > 0) {
             const moneyEarned = timePassedMinutes * incomePerMinute;
             worldState.ai.money += moneyEarned;
-            worldState.session = { minutesAway: timePassedMinutes, moneyEarned };
+            worldState.session = { minutesAway: timePassedMinutes, moneyEarned: moneyEarned };
             worldState.lastOnlineTimestamp = Date.now();
             await saveWorldState();
             renderWalletScreen();
