@@ -45,7 +45,7 @@ const WorldBookV2 = {
                 overflowAlert: true
             };
             // 直接写入默认设置到存储，避免读取未初始化的UI值
-            localStorage.setItem('worldbook.globalSettings', JSON.stringify(this.globalSettings));
+            this.persistGlobalSettings();
         }
         // 确保UI显示当前设置
         this.loadGlobalSettingsToUI();
@@ -79,9 +79,14 @@ const WorldBookV2 = {
         };
 
         // 保存到localStorage
-        localStorage.setItem('worldbook.globalSettings', JSON.stringify(this.globalSettings));
+        this.persistGlobalSettings();
 
         alert('全局设置已保存！');
+    },
+
+    // 将当前全局设置写入存储
+    persistGlobalSettings() {
+        localStorage.setItem('worldbook.globalSettings', JSON.stringify(this.globalSettings));
     },
 
     // 加载全局设置到UI
@@ -135,7 +140,7 @@ const WorldBookV2 = {
             // 先更新UI为默认值
             this.loadGlobalSettingsToUI();
             // 然后直接将默认值写入存储
-            localStorage.setItem('worldbook.globalSettings', JSON.stringify(this.globalSettings));
+            this.persistGlobalSettings();
             alert('已重置为默认设置！');
         }
     },
