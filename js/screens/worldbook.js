@@ -1080,6 +1080,17 @@ const WorldBookV2 = {
         document.getElementById('book-name').value = this.currentBook.name;
         document.getElementById('book-description').value = this.currentBook.description || '';
         document.getElementById('book-scope').value = this.currentBook.scope || 'global';
+
+        // 确保角色数组存在（兼容旧数据）
+        if (!Array.isArray(this.currentBook.characters)) {
+            if (this.currentBook.character) {
+                this.currentBook.characters = [this.currentBook.character];
+                delete this.currentBook.character;
+            } else {
+                this.currentBook.characters = [];
+            }
+        }
+
         this.toggleCharacterSelection();
 
         // 加载扫描深度和Token预算
