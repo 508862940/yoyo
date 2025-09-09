@@ -1091,6 +1091,18 @@ const WorldBookV2 = {
         }
         this.toggleCharacterSelection();
 
+        // 确保角色数组存在（兼容旧数据）
+        if (!Array.isArray(this.currentBook.characters)) {
+            if (this.currentBook.character) {
+                this.currentBook.characters = [this.currentBook.character];
+                delete this.currentBook.character;
+            } else {
+                this.currentBook.characters = [];
+            }
+        }
+
+        this.toggleCharacterSelection();
+
         // 加载扫描深度和Token预算
         const scanDepthInput = document.getElementById('book-scan-depth');
         if (scanDepthInput) {
@@ -1210,7 +1222,65 @@ const WorldBookV2 = {
             dialog.style.display = 'none';
         }
     },
-    
+
+    // 切换角色选择区域显示
+    toggleCharacterSelection() {
+        const scopeSelect = document.getElementById('book-scope');
+        const charSection = document.getElementById('book-character-selection');
+        if (!scopeSelect || !charSection) return;
+
+        if (scopeSelect.value === 'character') {
+            charSection.style.display = 'block';
+            // TODO: populate book-characters-list when multi-character support is implemented
+        } else {
+            charSection.style.display = 'none';
+        }
+    },
+
+    // 导入世界书
+    importBook() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (!data.book || !data.entries) {
+                        alert('文件格式不正确。');
+                        return;
+                    }
+
+                    const bookId = data.book.id || `import_${Date.now()}`;
+                    const newBook = { ...data.book, id: bookId };
+                    const newEntries = (data.entries || []).map(entry => ({
+                        ...entry,
+                        id: entry.id || `import_entry_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                        bookId
+                    }));
+
+                    this.books.push(newBook);
+                    this.entries.push(...newEntries);
+                    this.currentBook = newBook;
+                    this.saveData();
+                    this.render();
+                    alert('世界书导入成功！');
+                } catch (err) {
+                    console.error(err);
+                    alert('导入世界书失败：' + err.message);
+                }
+            };
+
+            reader.readAsText(file);
+        });
+
+        input.click();
+    },
+
     // 删除世界书
     deleteBook() {
         if (!this.currentBook) return;
